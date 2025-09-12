@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tableau de bord - Gestion Hybride</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js (optionnel pour graphiques) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+      /* Small custom styles to harmonize Bootstrap cards with Tailwind spacing */
+      .card-compact { padding: 0.75rem; }
+      .small-muted { font-size: 0.85rem; color: #6b7280; }
+      .value-large { font-weight: 700; font-size: 1.25rem; }
+      /* Make LCD-like readouts */
+      .readout { background: linear-gradient(180deg,#0f172a,#021129); color: #e6f0ff; border-radius: .5rem; padding: .6rem; }
+    </style>
+  </head>
+  <body class="bg-slate-50">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Gestion Hybride</a>
+        <div class="d-flex gap-2 align-items-center">
+          <span id="wifiBadge" class="badge bg-secondary">WiFi: —</span>
+          <span id="lastUpdate" class="small-muted">Dernière maj: —</span>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-4">
+      <!-- Top summary -->
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div class="card card-compact shadow-sm">
+            <div class="card-body">
+              <h6 class="card-title">Source active</h6>
+              <div id="activeSource" class="readout">None</div>
+              <p class="small-muted mt-2">Afficher la source actuellement utilisée par le système</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card card-compact shadow-sm">
+            <div class="card-body">
+              <h6 class="card-title">Énergie totale</h6>
+              <div id="totalEnergy" class="readout">0.000 kWh</div>
+              <p class="small-muted mt-2">Somme des énergies mesurées (S1 + S2)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card card-compact shadow-sm">
+            <div class="card-body">
+              <h6 class="card-title">Charge active</h6>
+              <div id="activeLoad" class="readout">None</div>
+              <p class="small-muted mt-2">Quelles charges sont alimentées (L1 / L2)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed panels -->
+      <div class="row mt-4 g-3">
+        <!-- Source 1 -->
+        <div class="col-md-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">Source 1 <span id="etatS1" class="badge bg-secondary">OFF</span></h5>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <div class="small-muted">Tension (U1)</div>
+                  <div id="U1" class="value-large">0.0 V</div>
+                </div>
+                <div>
+                  <div class="small-muted">Courant total (I1)</div>
+                  <div id="I1" class="value-large">0.000 A</div>
+                </div>
+                <div>
+                  <div class="small-muted">Puissance (P1)</div>
+                  <div id="P1" class="value-large">0.0 W</div>
+                </div>
+              </div>
+
+              <hr>
+              <div class="d-flex gap-3">
+                <div>
+                  <div class="small-muted">Énergie S1</div>
+                  <div id="E1">0.000 kWh</div>
+                </div>
+                <div>
+                  <div class="small-muted">Lampes</div>
+                  <div id="lampsS1">L1: OFF • L2: OFF</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Source 2 -->
+        <div class="col-md-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">Source 2 <span id="etatS2" class="badge bg-secondary">OFF</span></h5>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <div class="small-muted">Tension (U2)</div>
+                  <div id="U2" class="value-large">0.0 V</div>
+                </div>
+                <div>
+                  <div class="small-muted">Courant (I2)</div>
+                  <div id="I2" class="value-large">0.000 A</div>
+                </div>
+                <div>
+                  <div class="small-muted">Puissance (P2)</div>
+                  <div id="P2" class="value-large">0.0 W</div>
+                </div>
+              </div>
+
+              <hr>
+              <div class="d-flex gap-3">
+                <div>
+                  <div class="small-muted">Énergie S2</div>
+                  <div id="E2">0.000 kWh</div>
+                </div>
+                <div>
+                  <div class="small-muted">Lampes</div>
+                  <div id="lampsS2">L1: OFF • L2: OFF</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Lamp details & quick controls -->
+      <div class="row mt-4 g-3">
+        <div class="col-md-6">
+          <div class="card shadow-sm p-3">
+            <h6>Lampe 1</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="small-muted">Courant</div>
+                <div id="currentLamp1" class="value-large">0.000 A</div>
+              </div>
+              <div>
+                <div class="small-muted">Puissance</div>
+                <div id="powerLamp1" class="value-large">0.0 W</div>
+              </div>
+              <div>
+                <button id="btnToggleL1" class="btn btn-outline-primary">Basculer L1</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card shadow-sm p-3">
+            <h6>Lampe 2</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="small-muted">Courant</div>
+                <div id="currentLamp2" class="value-large">0.000 A</div>
+              </div>
+              <div>
+                <div class="small-muted">Puissance</div>
+                <div id="powerLamp2" class="value-large">0.0 W</div>
+              </div>
+              <div>
+                <button id="btnToggleL2" class="btn btn-outline-primary">Basculer L2</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Optional chart -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card shadow-sm p-3">
+            <h6>Historique puissance (dernières valeurs)</h6>
+            <canvas id="powerChart" height="80"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <footer class="text-center small-muted mt-4">Interface générée — adaptez l'URL du backend dans le script.</footer>
+    </main>
+
+    <!-- Bootstrap JS bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // === Configuration ===
+      const serverUrl = 'http://YOUR_SERVER_IP:8000/api/data'; // Remplacez par l'IP de votre serveur
+      const pollIntervalMs = 5000; // correspond au code Arduino
+
+      // Chart setup
+      const ctx = document.getElementById('powerChart');
+      const powerChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{ label: 'P1 (W)', data: [], tension: 0.3 }, { label: 'P2 (W)', data: [], tension: 0.3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Utility
+      function formatNumber(v, digits=3) { return Number(v).toFixed(digits); }
+      function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+
+      async function fetchAndRender() {
+        try {
+          const resp = await fetch(serverUrl, { cache: 'no-store' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+
+          // Expected structure matches le JSON envoyé depuis l'ESP32
+          setText('activeSource', data.system?.active_source ?? 'None');
+          setText('activeLoad', data.system?.active_load ?? 'None');
+          setText('totalEnergy', (data.system?.total_energy ?? 0).toFixed(3) + ' kWh');
+
+          // Source 1
+          setText('etatS1', data.source_1?.state ?? 'OFF');
+          setText('U1', (data.source_1?.voltage ?? 0).toFixed(1) + ' V');
+          setText('I1', (data.source_1?.current ?? 0).toFixed(3) + ' A');
+          setText('P1', (data.source_1?.power ?? 0).toFixed(1) + ' W');
+          setText('E1', (data.source_1?.energy ?? 0).toFixed(3) + ' kWh');
+
+          // Source 2
+          setText('etatS2', data.source_2?.state ?? 'OFF');
+          setText('U2', (data.source_2?.voltage ?? 0).toFixed(1) + ' V');
+          setText('I2', (data.source_2?.current ?? 0).toFixed(3) + ' A');
+          setText('P2', (data.source_2?.power ?? 0).toFixed(1) + ' W');
+          setText('E2', (data.source_2?.energy ?? 0).toFixed(3) + ' kWh');
+
+          // Lamps
+          setText('lampsS1', `L1: ${data.lamp_1?.state ?? 'OFF'} • L2: ${data.lamp_2?.state ?? 'OFF'}`);
+          setText('lampsS2', `L1: ${data.lamp_1?.state ?? 'OFF'} • L2: ${data.lamp_2?.state ?? 'OFF'}`);
+
+          setText('currentLamp1', (data.lamp_1?.current ?? 0).toFixed(3) + ' A');
+          setText('powerLamp1', (data.lamp_1?.power ?? 0).toFixed(1) + ' W');
+          setText('currentLamp2', (data.lamp_2?.current ?? 0).toFixed(3) + ' A');
+          setText('powerLamp2', (data.lamp_2?.power ?? 0).toFixed(1) + ' W');
+
+          // WiFi / RSSI
+          const rssi = data.system?.wifi_rssi;
+          const wifiBadge = document.getElementById('wifiBadge');
+          if (typeof rssi !== 'undefined') {
+            wifiBadge.textContent = 'WiFi: ' + rssi + ' dBm';
+            wifiBadge.className = 'badge ' + (rssi < -75 ? 'bg-danger' : (rssi < -55 ? 'bg-warning' : 'bg-success'));
+          }
+
+          // Chart update
+          const now = new Date().toLocaleTimeString();
+          if (powerChart.data.labels.length > 20) {
+            powerChart.data.labels.shift();
+            powerChart.data.datasets.forEach(ds => ds.data.shift());
+          }
+          powerChart.data.labels.push(now);
+          powerChart.data.datasets[0].data.push(data.source_1?.power ?? 0);
+          powerChart.data.datasets[1].data.push(data.source_2?.power ?? 0);
+          powerChart.update();
+
+          setText('lastUpdate', 'Dernière maj: ' + new Date().toLocaleString());
+        }
+        catch (err) {
+          console.warn('Fetch error', err);
+          setText('lastUpdate', 'Erreur de connexion');
+          const wifiBadge = document.getElementById('wifiBadge');
+          wifiBadge.textContent = 'WiFi: —';
+          wifiBadge.className = 'badge bg-secondary';
+        }
+      }
+
+      // Optional: send control commands (if backend supports it). This just demonstrates POST format.
+      async function sendControl(cmd) {
+        try {
+          const resp = await fetch(serverUrl.replace('/data','/control'), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cmd)
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const r = await resp.json();
+          console.log('Control response', r);
+        } catch (err) { console.warn('Control failed', err); }
+      }
+
+      // Buttons to toggle lamps (UI only unless backend implements /control)
+      document.getElementById('btnToggleL1').addEventListener('click', ()=> sendControl({device: 'lamp_1', action: 'toggle'}));
+      document.getElementById('btnToggleL2').addEventListener('click', ()=> sendControl({device: 'lamp_2', action: 'toggle'}));
+
+      // Start polling
+      fetchAndRender();
+      setInterval(fetchAndRender, pollIntervalMs);
+    </script>
+  </body>
+</html>
