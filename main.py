@@ -172,7 +172,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://ai-report-kdwb.onrender.com"],  # tu peux mettre ["http://127.0.0.1:5500"] si ton front tourne depuis un fichier ou live-server
     allow_credentials=True,
-    allow_methods=["https://ai-report-kdwb.onrender.com"],
+    allow_methods=["*"],
     allow_headers=["https://ai-report-kdwb.onrender.com"],
 )
 
