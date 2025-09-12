@@ -188,12 +188,18 @@ def get_db():
     finally:
         db.close()
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Configuration du middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,        # autorise uniquement ces origines
+    allow_credentials=True,       # autorise cookies / authentification
+    allow_methods=["*"],          # autorise toutes les méthodes (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],          # autorise tous les headers
 )
 
 @app.get("/")
