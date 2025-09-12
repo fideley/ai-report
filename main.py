@@ -585,6 +585,96 @@ async def get_pending_commands():
     logger.info(f"Commandes récupérées par ESP32: {commands}")
     return {"commands": commands}
 
+@app.get("/data/daily-energy", response_model=dict)
+async def get_daily_energy(
+    date: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Récupérer la consommation d'énergie journalière par appareil pour une date donnée
+    """
+    try:
+        logger.info(f"Génération du rapport d'énergie journalière pour: {date}")
+        
+        # Convertir la date en datetime pour début et fin de journée
+        start_date = datetime.strptime(date, "%Y-%m-%d")
+        end_date = start_date.replace(hour=23, minute=59, second=59)
+        
+        # Récupérer toutes les données de la journée
+        readings = db.query(SensorData).filter(
+            SensorData.timestamp >= start_date,
+            SensorData.timestamp <= end_date
+        ).order_by(SensorData.timestamp.asc()).all()
+        
+        if not readings:
+            logger.warning(f"Aucune donnée trouvée pour le {date}")
+            return {
+                "error": f"Aucune donnée trouvée pour le {date}",
+                "date": date,
+                "lamp1_energy": 0,
+                "lamp2_energy": 0,
+                "source1_energy": 0,
+                "source2_energy": 0,
+                "total_energy": 0
+            }
+        
+        # Calcul de l'énergie consommée par chaque appareil
+        first_reading = readings[0]
+        last_reading = readings[-1]
+        
+        # Énergie des sources (différence entre fin et début de journée)
+        source1_energy = max(0, (last_reading.savedEnergyS1 or 0) - (first_reading.savedEnergyS1 or 0))
+        source2_energy = max(0, (last_reading.savedEnergyS2 or 0) - (first_reading.savedEnergyS2 or 0))
+        
+        # Estimation de l'énergie des lampes basée sur la puissance moyenne et le temps d'utilisation
+        lamp1_total_power = 0
+        lamp2_total_power = 0
+        lamp1_on_duration = 0
+        lamp2_on_duration = 0
+        
+        # Calcul basé sur les lectures avec un intervalle estimé entre chaque lecture
+        interval_hours = 0.05  # Supposons 3 minutes entre chaque lecture (3/60 = 0.05h)
+        
+        for reading in readings:
+            if reading.etatLamp1 == 'ON' and reading.powerLamp1:
+                lamp1_total_power += reading.powerLamp1 * interval_hours
+                lamp1_on_duration += interval_hours
+                
+            if reading.etatLamp2 == 'ON' and reading.powerLamp2:
+                lamp2_total_power += reading.powerLamp2 * interval_hours
+                lamp2_on_duration += interval_hours
+        
+        # Convertir en kWh
+        lamp1_energy = lamp1_total_power / 1000  # Watts to kWh
+        lamp2_energy = lamp2_total_power / 1000  # Watts to kWh
+        
+        total_energy = source1_energy + source2_energy
+        
+        result = {
+            "date": date,
+            "lamp1_energy": round(lamp1_energy, 3),
+            "lamp2_energy": round(lamp2_energy, 3),
+            "source1_energy": round(source1_energy, 3),
+            "source2_energy": round(source2_energy, 3),
+            "total_energy": round(total_energy, 3),
+            "statistics": {
+                "total_readings": len(readings),
+                "lamp1_on_duration_hours": round(lamp1_on_duration, 2),
+                "lamp2_on_duration_hours": round(lamp2_on_duration, 2),
+                "period_start": first_reading.timestamp,
+                "period_end": last_reading.timestamp
+            }
+        }
+        
+        logger.info(f"Énergie journalière calculée - L1: {lamp1_energy:.3f}kWh, L2: {lamp2_energy:.3f}kWh, S1: {source1_energy:.3f}kWh, S2: {source2_energy:.3f}kWh")
+        return result
+        
+    except ValueError as e:
+        logger.error(f"Format de date invalide: {date}")
+        raise HTTPException(status_code=400, detail=f"Format de date invalide. Utilisez YYYY-MM-DD")
+    except Exception as e:
+        logger.error(f"Erreur lors du calcul de l'énergie journalière: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul de l'énergie journalière: {str(e)}")
 
     
 Base.metadata.create_all(bind=engine)

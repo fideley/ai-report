@@ -229,52 +229,52 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row g-4 mt-4">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-toggle-on me-2"></i>Contrôle des Lampes
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <h6>Lampe 1</h6>
-                                            <small class="text-muted">État: <span id="lamp1CurrentState">--</span></small>
-                                        </div>
-                                        <div>
-                                            <button class="btn btn-success me-2" onclick="controlLamp(1, 'ON')">
-                                                <i class="fas fa-power-off"></i> ON
-                                            </button>
-                                            <button class="btn btn-danger" onclick="controlLamp(1, 'OFF')">
-                                                <i class="fas fa-power-off"></i> OFF
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <h6>Lampe 2</h6>
-                                            <small class="text-muted">État: <span id="lamp2CurrentState">--</span></small>
-                                        </div>
-                                        <div>
-                                            <button class="btn btn-success me-2" onclick="controlLamp(2, 'ON')">
-                                                <i class="fas fa-power-off"></i> ON
-                                            </button>
-                                            <button class="btn btn-danger" onclick="controlLamp(2, 'OFF')">
-                                                <i class="fas fa-power-off"></i> OFF
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="row g-4 mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-toggle-on me-2"></i>Contrôle des Lampes
+                                </h5>
                             </div>
-                            <div id="controlStatus" class="mt-3"></div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <h6>Lampe 1</h6>
+                                                <small class="text-muted">État: <span id="lamp1CurrentState">--</span></small>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-success me-2" onclick="controlLamp(1, 'ON')">
+                                                    <i class="fas fa-power-off"></i> ON
+                                                </button>
+                                                <button class="btn btn-danger" onclick="controlLamp(1, 'OFF')">
+                                                    <i class="fas fa-power-off"></i> OFF
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <h6>Lampe 2</h6>
+                                                <small class="text-muted">État: <span id="lamp2CurrentState">--</span></small>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-success me-2" onclick="controlLamp(2, 'ON')">
+                                                    <i class="fas fa-power-off"></i> ON
+                                                </button>
+                                                <button class="btn btn-danger" onclick="controlLamp(2, 'OFF')">
+                                                    <i class="fas fa-power-off"></i> OFF
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="controlStatus" class="mt-3"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -351,6 +351,29 @@
                             <div class="card-body">
                                 <div class="chart-container">
                                     <canvas id="statusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Nouveau graphique énergie journalière -->
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-chart-bar me-2"></i>Énergie Journalière par Appareil
+                                    </h5>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="dailyEnergyDate" class="form-control form-control-sm" style="width: auto;">
+                                        <button class="btn btn-primary btn-sm" onclick="loadDailyEnergyChart()">
+                                            <i class="fas fa-sync"></i> Actualiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 400px;">
+                                    <canvas id="dailyEnergyChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -477,8 +500,6 @@
     <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
-    <script src="/static/js/app.js">
-
-    </script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
