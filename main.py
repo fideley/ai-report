@@ -170,10 +170,10 @@ app = FastAPI(title="Système de Gestion Hybride API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tu peux mettre ["http://127.0.0.1:5500"] si ton front tourne depuis un fichier ou live-server
+    allow_origins=["https://ai-report-kdwb.onrender.com"],  # tu peux mettre ["http://127.0.0.1:5500"] si ton front tourne depuis un fichier ou live-server
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["https://ai-report-kdwb.onrender.com"],
+    allow_headers=["https://ai-report-kdwb.onrender.com"],
 )
 
 # Monter le dossier static
