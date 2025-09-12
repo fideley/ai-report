@@ -168,6 +168,13 @@ class LampControlResponse(BaseModel):
 # Application FastAPI
 app = FastAPI(title="Système de Gestion Hybride API", version="1.0.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # tu peux mettre ["http://127.0.0.1:5500"] si ton front tourne depuis un fichier ou live-server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Monter le dossier static
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -188,19 +195,7 @@ def get_db():
     finally:
         db.close()
 
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
 
-# Configuration du middleware CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,        # autorise uniquement ces origines
-    allow_credentials=True,       # autorise cookies / authentification
-    allow_methods=["*"],          # autorise toutes les méthodes (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],          # autorise tous les headers
-)
 
 @app.get("/")
 async def home(request: Request):
