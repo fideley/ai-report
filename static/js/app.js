@@ -1,6 +1,6 @@
 // Configuration globale
-const API_BASE_URL = 'http://localhost:8000'; // Ajustez selon votre configuration
-const UPDATE_INTERVAL = 3000; // 3 secondes
+const API_BASE_URL = 'https://smart-relay.onrender.com'; // Ajustez selon votre configuration
+const UPDATE_INTERVAL = 1000; // 3 secondes
 
 // Variables globales pour les graphiques
 let charts = {};
