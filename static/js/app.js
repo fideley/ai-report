@@ -1,9 +1,10 @@
 // Configuration globale
-const API_BASE_URL = 'https://ai-report-kdwb.onrender.com'; // Ajustez selon votre configuration
+const API_BASE_URL = 'http://localhost:8000'; // Ajustez selon votre configuration
 const UPDATE_INTERVAL = 3000; // 3 secondes
 
 // Variables globales pour les graphiques
 let charts = {};
+let devices = [];
 let chartData = {
     labels: [],
     power: { p1: [], p2: [], total: [] },
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSystemStats();
     loadHistory();
     loadLogs();
+    loadDevices(); // Ajouter cette ligne
     
     // Démarrer les mises à jour automatiques
     setInterval(loadLatestData, UPDATE_INTERVAL);
@@ -40,15 +42,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners pour les onglets
     document.getElementById('charts-tab').addEventListener('shown.bs.tab', function () {
-        // Redimensionner les graphiques quand l'onglet devient visible
         Object.values(charts).forEach(chart => chart.resize());
+    });
+    
+    // Event listener pour l'onglet Settings
+    document.getElementById('settings-tab').addEventListener('shown.bs.tab', function () {
+        loadDevices();
     });
     
     // Initialiser la date d'aujourd'hui pour le graphique d'énergie journalière
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dailyEnergyDate').value = today;
     
-    // Charger automatiquement le graphique pour aujourd'hui après un délai
     setTimeout(() => {
         loadDailyEnergyChart();
     }, 2000);
@@ -104,6 +109,357 @@ async function loadLatestData() {
       showError(`Erreur de connexion à l'API: ${error.message}`);
   }
 }
+
+async function loadDevices() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/devices`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        devices = await response.json();
+        displayDevices();
+        updateDeviceControls();
+        updateDashboardDevices();
+        
+    } catch (error) {
+        console.error('Erreur lors du chargement des appareils:', error);
+    }
+}
+
+async function addDevice() {
+    try {
+        const name = document.getElementById('deviceName').value.trim();
+        const type = document.getElementById('deviceType').value;
+        const priority = document.getElementById('devicePriority').value;
+        
+        if (!name) {
+            alert('Veuillez saisir un nom pour l\'appareil');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/devices`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                device_type: type,
+                priority: priority
+            })
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const result = await response.json();
+        
+        // Réinitialiser le formulaire
+        document.getElementById('deviceName').value = '';
+        document.getElementById('deviceType').value = 'lampe';
+        document.getElementById('devicePriority').value = 'prioritaire';
+        
+        // Recharger la liste
+        await loadDevices();
+        
+        showControlStatus(`Appareil "${result.name}" ajouté avec succès`, 'success');
+        
+    } catch (error) {
+        console.error('Erreur lors de l\'ajout de l\'appareil:', error);
+        showControlStatus(`Erreur lors de l'ajout: ${error.message}`, 'error');
+    }
+}
+
+
+function displayDevices() {
+    const tbody = document.getElementById('devicesTableBody');
+    
+    if (devices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Aucun appareil configuré</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = devices.map(device => {
+        const priorityColors = {
+            'prioritaire': 'bg-danger',
+            'semi_prioritaire': 'bg-warning text-dark',
+            'non_prioritaire': 'bg-secondary'
+        };
+        
+        const typeIcons = {
+            'lampe': 'fas fa-lightbulb',
+            'prise': 'fas fa-plug',
+            'clim': 'fas fa-snowflake',
+            'brasseur': 'fas fa-fan'
+        };
+        
+        return `
+            <tr>
+                <td>
+                    <i class="${typeIcons[device.device_type] || 'fas fa-question'} me-2"></i>
+                    ${device.name}
+                </td>
+                <td><span class="badge bg-info">${device.device_type}</span></td>
+                <td><span class="badge ${priorityColors[device.priority]}">${device.priority.replace('_', '-')}</span></td>
+                <td><span class="badge ${device.current_state === 'ON' ? 'bg-success' : 'bg-secondary'}">${device.current_state}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteDevice(${device.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editDevice(${device.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function editDevice(deviceId) {
+    // Demande confirmation avant modification
+    if (!confirm("Voulez-vous vraiment modifier cet appareil ?")) {
+        return;
+    }
+
+    try {
+        // Exemple : récupération des nouvelles valeurs depuis des inputs
+        const deviceName = document.getElementById(`device-name-${deviceId}`).value;
+        const deviceType = document.getElementById(`device-type-${deviceId}`).value;
+        const priority   = document.getElementById(`device-priority-${deviceId}`).value;
+
+        const payload = {
+            device_name: deviceName,
+            device_type: deviceType,
+            priority: priority
+        };
+
+        const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        await loadDevices(); // recharger la liste après modification
+        showControlStatus('Appareil modifié avec succès', 'success');
+
+    } catch (error) {
+        console.error('Erreur lors de la modification:', error);
+        showControlStatus(`Erreur lors de la modification: ${error.message}`, 'error');
+    }
+}
+
+
+
+async function deleteDevice(deviceId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appareil ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        await loadDevices();
+        showControlStatus('Appareil supprimé avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        showControlStatus(`Erreur lors de la suppression: ${error.message}`, 'error');
+    }
+}
+
+// Mettre à jour les contrôles d'appareils
+function updateDeviceControls() {
+    const container = document.getElementById('otherDevicesControls');
+    
+    if (devices.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const devicesByType = {
+        'lampe': devices.filter(d => d.device_type === 'lampe'),
+        'prise': devices.filter(d => d.device_type === 'prise'),
+        'clim': devices.filter(d => d.device_type === 'clim'),
+        'brasseur': devices.filter(d => d.device_type === 'brasseur')
+    };
+
+    const typeConfig = {
+        'lampe': { icon: 'fas fa-lightbulb', color: 'warning', title: 'Autres Lampes' },
+        'prise': { icon: 'fas fa-plug', color: 'primary', title: 'Prises' },
+        'clim': { icon: 'fas fa-snowflake', color: 'info', title: 'Climatiseurs' },
+        'brasseur': { icon: 'fas fa-fan', color: 'success', title: 'Brasseurs d\'air' }
+    };
+
+    const priorityColors = {
+        'prioritaire': 'bg-danger',
+        'semi_prioritaire': 'bg-warning text-dark',
+        'non_prioritaire': 'bg-secondary'
+    };
+
+    let html = '';
+
+    Object.entries(devicesByType).forEach(([type, typeDevices]) => {
+        if (typeDevices.length > 0) {
+            const config = typeConfig[type];
+            html += `
+                <div class="mb-4">
+                    <h6 class="border-bottom pb-2 mb-3">
+                        <i class="${config.icon} text-${config.color} me-2"></i>${config.title} (Interface)
+                    </h6>
+                    <div class="row g-3">
+            `;
+
+            typeDevices.forEach(device => {
+                html += `
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center justify-content-between border p-3 rounded">
+                            <div>
+                                <h6>
+                                    ${device.name}
+                                    <span class="badge ${priorityColors[device.priority]} text-white ms-2">
+                                        ${device.priority.replace('_', '-')}
+                                    </span>
+                                </h6>
+                                <small class="text-muted">
+                                    État: <span class="fw-bold ${device.current_state === 'ON' ? 'text-success' : 'text-secondary'}">${device.current_state}</span>
+                                    <br>
+                                    <em class="text-warning"></em>
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-success btn-sm me-2" onclick="fakeControlDevice(${device.id}, 'ON')">
+                                    <i class="fas fa-power-off"></i> ON
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="fakeControlDevice(${device.id}, 'OFF')">
+                                    <i class="fas fa-power-off"></i> OFF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    container.innerHTML = html;
+}
+
+async function fakeControlDevice(deviceId, action) {
+    try {
+        // Mettre à jour seulement l'état dans la base de données (pas de contrôle réel)
+        const response = await fetch(`${API_BASE_URL}/control/device?device_id=${deviceId}&action=${action}`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const result = await response.json();
+        showControlStatus(`Commande envoyée: ${result.device_name} ${action} `, 'success');
+        
+        // Recharger les appareils pour mettre à jour l'affichage
+        setTimeout(loadDevices, 500);
+        
+    } catch (error) {
+        console.error('Erreur lors du contrôle simulé:', error);
+        showControlStatus(`Erreur : ${error.message}`, 'error');
+    }
+}
+
+async function controlDevice(deviceId, action) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/control/device?device_id=${deviceId}&action=${action}`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const result = await response.json();
+        showControlStatus(`Commande envoyée: ${result.device_name} ${action}`, 'success');
+        
+        // Recharger les appareils pour mettre à jour l'état
+        setTimeout(loadDevices, 1000);
+        
+    } catch (error) {
+        console.error('Erreur lors du contrôle de l\'appareil:', error);
+        showControlStatus(`Erreur: ${error.message}`, 'error');
+    }
+}
+
+function updateDashboardDevices() {
+    const devicesByType = {
+        'lampe': devices.filter(d => d.device_type === 'lampe'),
+        'prise': devices.filter(d => d.device_type === 'prise'),
+        'clim': devices.filter(d => d.device_type === 'clim'),
+        'brasseur': devices.filter(d => d.device_type === 'brasseur')
+    };
+
+    // Fonction helper pour générer l'affichage d'un appareil
+    const generateDeviceDisplay = (device) => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <span class="status-indicator ${device.current_state === 'ON' ? 'status-on' : 'status-off'}"></span>
+                <small>${device.name}: <span class="fw-bold">${device.current_state}</span></small>
+            </div>
+        </div>
+    `;
+
+    // Mettre à jour les lampes supplémentaires (en plus des 2 par défaut)
+    const additionalLamps = devicesByType.lampe;
+    const additionalLampsContainer = document.getElementById('additionalLamps');
+    if (additionalLamps.length > 0) {
+        additionalLampsContainer.innerHTML = additionalLamps.map(generateDeviceDisplay).join('');
+    } else {
+        additionalLampsContainer.innerHTML = '';
+    }
+
+    // Mettre à jour les prises
+    const prisesContainer = document.getElementById('prisesContainer');
+    const totalPrisePowerElement = document.getElementById('totalPrisePower');
+    if (devicesByType.prise.length > 0) {
+        prisesContainer.innerHTML = devicesByType.prise.map(generateDeviceDisplay).join('');
+        const totalPrisePower = devicesByType.prise.reduce((sum, device) => sum + (device.power_consumption || 0), 0);
+        totalPrisePowerElement.textContent = `${totalPrisePower} W`;
+    } else {
+        prisesContainer.innerHTML = '<small class="text-muted">Aucune prise configurée</small>';
+        totalPrisePowerElement.textContent = '-- W';
+    }
+
+    // Mettre à jour les climatiseurs
+    const climsContainer = document.getElementById('climsContainer');
+    const totalClimPowerElement = document.getElementById('totalClimPower');
+    if (devicesByType.clim.length > 0) {
+        climsContainer.innerHTML = devicesByType.clim.map(generateDeviceDisplay).join('');
+        const totalClimPower = devicesByType.clim.reduce((sum, device) => sum + (device.power_consumption || 0), 0);
+        totalClimPowerElement.textContent = `${totalClimPower} W`;
+    } else {
+        climsContainer.innerHTML = '<small class="text-muted">Aucun climatiseur configuré</small>';
+        totalClimPowerElement.textContent = '-- W';
+    }
+
+    // Mettre à jour les brasseurs
+    const brasseursContainer = document.getElementById('brasseursContainer');
+    const totalBrasseurPowerElement = document.getElementById('totalBrasseurPower');
+    if (devicesByType.brasseur.length > 0) {
+        brasseursContainer.innerHTML = devicesByType.brasseur.map(generateDeviceDisplay).join('');
+        const totalBrasseurPower = devicesByType.brasseur.reduce((sum, device) => sum + (device.power_consumption || 0), 0);
+        totalBrasseurPowerElement.textContent = `${totalBrasseurPower} W`;
+    } else {
+        brasseursContainer.innerHTML = '<small class="text-muted">Aucun brasseur configuré</small>';
+        totalBrasseurPowerElement.textContent = '-- W';
+    }
+}
+
 
 // Mettre à jour le dashboard avec les dernières données
 function updateDashboard(data) {
@@ -163,13 +519,13 @@ function updateSourceStatus(elementId, etat, sourceNum) {
   
   console.log(`Mise à jour Source ${sourceNum}: état = "${etat}"`); // Debug
   
-  if (etat === 'ON' || etat === 'ON ') { // Gérer les espaces en fin
+  if (etat === 'ON' || etat === 'ON ') { 
       indicator.className = 'status-indicator status-on';
-      text.textContent = `SOURCE ${sourceNum} ON`;
+      text.textContent = ` ON`;
       text.className = 'text-success fw-bold';
   } else {
       indicator.className = 'status-indicator status-off';
-      text.textContent = `SOURCE ${sourceNum} OFF`;
+      text.textContent = ` OFF`;
       text.className = 'text-muted';
   }
 }

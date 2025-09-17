@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système Hybride - Tableau de Bord</title>
+    <title>Smart Relay - Dashboard</title>
     
     <!-- Bootstrap 5 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
@@ -30,8 +30,9 @@
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="#">
                 <i class="fas fa-bolt me-2"></i>
-                Système Hybride - Tableau de Bord
+                Smart Relay - Dashboard
             </a>
+            <a class="nav-link" href="/prevision">Prévisions Solaires</a>
             <div class="d-flex align-items-center">
                 <span class="badge bg-success me-3" id="connectionStatus">
                     <i class="fas fa-circle me-1"></i>Connecté
@@ -69,6 +70,11 @@
                     <i class="fas fa-terminal me-2"></i>Logs
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" role="tab">
+                    <i class="fas fa-cog me-2"></i>Paramètres
+                </button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -82,7 +88,7 @@
                         <div class="card metric-card h-100">
                             <div class="card-body text-center">
                                 <i class="fas fa-plug text-primary mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Source 1</h6>
+                                <h6 class="card-title">Solar Panel</h6>
                                 <div id="source1Status" class="mb-2">
                                     <span class="status-indicator status-off"></span>
                                     <span class="text-muted">HORS LIGNE</span>
@@ -109,7 +115,7 @@
                         <div class="card metric-card h-100">
                             <div class="card-body text-center">
                                 <i class="fas fa-plug text-success mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="card-title">Source 2</h6>
+                                <h6 class="card-title">SBEE</h6>
                                 <div id="source2Status" class="mb-2">
                                     <span class="status-indicator status-off"></span>
                                     <span class="text-muted">HORS LIGNE</span>
@@ -146,6 +152,8 @@
                                         <span class="status-indicator status-off"></span>
                                         <small>Lampe 2: <span id="lamp2State">OFF</span></small>
                                     </div>
+                                    <!-- Autres lampes ajoutées dynamiquement -->
+                                    <div id="additionalLamps"></div>
                                 </div>
                                 <div class="row text-center">
                                     <div class="col-6">
@@ -160,6 +168,60 @@
                             </div>
                         </div>
                     </div>
+                
+                    <!-- Prises -->
+                    <div class="col-md-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-plug text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Prises</h6>
+                                <div class="mb-2" id="prisesContainer">
+                                    <small class="text-muted">Aucune prise configurée</small>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">Puissance totale</small>
+                                    <div class="fw-bold" id="totalPrisePower">-- W</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <!-- Climatiseurs -->
+                    <div class="col-md-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-snowflake text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Climatiseurs</h6>
+                                <div class="mb-2" id="climsContainer">
+                                    <small class="text-muted">Aucun climatiseur configuré</small>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">Puissance totale</small>
+                                    <div class="fw-bold" id="totalClimPower">-- W</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <!-- Brasseurs d'air -->
+                    <div class="col-md-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-fan text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Brasseurs d'air</h6>
+                                <div class="mb-2" id="brasseursContainer">
+                                    <small class="text-muted">Aucun brasseur configuré</small>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">Puissance totale</small>
+                                    <div class="fw-bold" id="totalBrasseurPower">-- W</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+               
+
+    
 
                     <div class="col-md-3">
                         <div class="card metric-card h-100">
@@ -235,44 +297,56 @@
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
-                                    <i class="fas fa-toggle-on me-2"></i>Contrôle des Lampes
+                                    <i class="fas fa-toggle-on me-2"></i>Contrôle des Appareils
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <h6>Lampe 1</h6>
-                                                <small class="text-muted">État: <span id="lamp1CurrentState">--</span></small>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-success me-2" onclick="controlLamp(1, 'ON')">
-                                                    <i class="fas fa-power-off"></i> ON
-                                                </button>
-                                                <button class="btn btn-danger" onclick="controlLamp(1, 'OFF')">
-                                                    <i class="fas fa-power-off"></i> OFF
-                                                </button>
+                                <!-- Lampes par défaut (contrôle réel) -->
+                                <div class="mb-4">
+                                    <h6 class="border-bottom pb-2 mb-3">
+                                        <i class="fas fa-lightbulb text-warning me-2"></i>Lampes (Contrôle Actif)
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center justify-content-between border p-3 rounded bg-light">
+                                                <div>
+                                                    <h6>Lampe 1 <span class="badge bg-danger text-white ms-2">Prioritaire</span></h6>
+                                                    <small class="text-muted">État: <span id="lamp1CurrentState">--</span></small>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-success btn-sm me-2" onclick="controlLamp(1, 'ON')">
+                                                        <i class="fas fa-power-off"></i> ON
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" onclick="controlLamp(1, 'OFF')">
+                                                        <i class="fas fa-power-off"></i> OFF
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <h6>Lampe 2</h6>
-                                                <small class="text-muted">État: <span id="lamp2CurrentState">--</span></small>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-success me-2" onclick="controlLamp(2, 'ON')">
-                                                    <i class="fas fa-power-off"></i> ON
-                                                </button>
-                                                <button class="btn btn-danger" onclick="controlLamp(2, 'OFF')">
-                                                    <i class="fas fa-power-off"></i> OFF
-                                                </button>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center justify-content-between border p-3 rounded bg-light">
+                                                <div>
+                                                    <h6>Lampe 2 <span class="badge bg-danger text-white ms-2">Prioritaire</span></h6>
+                                                    <small class="text-muted">État: <span id="lamp2CurrentState">--</span></small>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-success btn-sm me-2" onclick="controlLamp(2, 'ON')">
+                                                        <i class="fas fa-power-off"></i> ON
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" onclick="controlLamp(2, 'OFF')">
+                                                        <i class="fas fa-power-off"></i> OFF
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                
+                                <!-- Autres appareils (interface seulement) -->
+                                <div id="otherDevicesControls">
+                                    <!-- Sera rempli dynamiquement -->
+                                </div>
+                                
                                 <div id="controlStatus" class="mt-3"></div>
                             </div>
                         </div>
@@ -494,8 +568,81 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
+                <div class="row g-4">
+                    <!-- Formulaire d'ajout d'appareil -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-plus me-2"></i>Ajouter un Appareil
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Nom de l'appareil:</label>
+                                    <input type="text" id="deviceName" class="form-control" placeholder="Ex: Climatiseur Bureau">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Type d'appareil:</label>
+                                    <select id="deviceType" class="form-select">
+                                        <option value="lampe">Lampe</option>
+                                        <option value="prise">Prise</option>
+                                        <option value="clim">Climatiseur</option>
+                                        <option value="brasseur">Brasseur d'air</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Priorité:</label>
+                                    <select id="devicePriority" class="form-select">
+                                        <option value="prioritaire">Prioritaire</option>
+                                        <option value="semi_prioritaire">Semi-prioritaire</option>
+                                        <option value="non_prioritaire">Non prioritaire</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary w-100" onclick="addDevice()">
+                                    <i class="fas fa-plus me-2"></i>Ajouter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Liste des appareils -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-list me-2"></i>Liste des Appareils
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Nom</th>
+                                                <th>Type</th>
+                                                <th>Priorité</th>
+                                                <th>État</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="devicesTableBody">
+                                            <!-- Les appareils seront ajoutés dynamiquement -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    
 
     <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
