@@ -15,7 +15,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import matplotlib
-matplotlib.use('Agg')  # Backend non-interactif pour serveur
+matplotlib.use('Agg')  
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -24,7 +24,6 @@ import io
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
 
-# Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
 # Configuration du logging
@@ -37,13 +36,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(LOG_FILE, encoding='utf-8'),
-        logging.StreamHandler()  # Affichage dans la console aussi
+        logging.StreamHandler()  
     ]
 )
 
 logger = logging.getLogger("HybridSystemAPI")
 
-# Configuration de la base de donnÃ©es PostgreSQL depuis les variables d'environnement
+# Configuration de la base de donnees PostgreSQL depuis les variables d'environnement
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
@@ -52,8 +51,8 @@ DB_NAME = os.getenv("DB_NAME")
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Log de la configuration au dÃ©marrage
-logger.info(f"DÃ©marrage de l'API SystÃ¨me Hybride")
+# Log de la configuration au demarrage
+logger.info(f"Demarrage de l'API Systeme Hybride")
 logger.info(f"Configuration BDD - Host: {DB_HOST}, Port: {DB_PORT}, DB: {DB_NAME}, User: {DB_USER}")
 logger.info(f"Niveau de log: {LOG_LEVEL}, Fichier de log: {LOG_FILE}")
 
@@ -61,24 +60,24 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Test de connexion Ã  la base de donnÃ©es
+# Test de connexion a  la base de donnees
 try:
     # Test simple de connexion
     with engine.connect() as conn:
-        logger.info("Connexion Ã  la base de donnÃ©es rÃ©ussie")
+        logger.info("Connexion a  la base de donnees reussie")
 except Exception as e:
-    logger.error(f"Erreur de connexion Ã  la base de donnÃ©es: {str(e)}")
+    logger.error(f"Erreur de connexion a  la base de donnees: {str(e)}")
     raise
 
-# ModÃ¨le de base de donnÃ©es
+# Modele de base de donnees
 class SensorData(Base):
     __tablename__ = "sensor_readings"
     
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    device_timestamp = Column(Integer)  # timestamp de l'ESP32
+    device_timestamp = Column(Integer)  
     
-    # DonnÃ©es de tension et courant
+    # Donnees de tension et courant
     U1 = Column(Float)
     I1 = Column(Float)
     P1 = Column(Float)
@@ -86,18 +85,18 @@ class SensorData(Base):
     I2 = Column(Float)
     P2 = Column(Float)
     
-    # DonnÃ©es des lampes
+    # Donnees des lampes
     currentLamp1 = Column(Float)
     currentLamp2 = Column(Float)
     powerLamp1 = Column(Float)
     powerLamp2 = Column(Float)
     
-    # DonnÃ©es d'Ã©nergie
+    # Donnees d'energie
     savedEnergyS1 = Column(Float)
     savedEnergyS2 = Column(Float)
     savedEnergyT = Column(Float)
     
-    # Ã‰tats
+    # Etats
     etatS1 = Column(String)
     etatS2 = Column(String)
     etatLamp1 = Column(String)
@@ -111,11 +110,11 @@ class Device(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    device_type = Column(String(20), nullable=False)  # 'lampe', 'prise', 'clim', 'brasseur'
-    priority = Column(String(20), nullable=False)  # 'prioritaire', 'semi_prioritaire', 'non_prioritaire'
-    current_state = Column(String(10), default='OFF')  # 'ON', 'OFF'
-    power_consumption = Column(Float, default=0.0)  # Puissance en watts
-    is_active = Column(Boolean, default=True)  # Pour dÃ©sactiver sans supprimer
+    device_type = Column(String(20), nullable=False)  
+    priority = Column(String(20), nullable=False)  
+    current_state = Column(String(10), default='OFF')  
+    power_consumption = Column(Float, default=0.0)  
+    is_active = Column(Boolean, default=True)  
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -126,8 +125,8 @@ class ForecastData(Base):
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     forecast_date = Column(DateTime, nullable=False)
-    image_data = Column(String)  # Base64 encoded image
-    raw_data = Column(String)  # JSON des données brutes
+    image_data = Column(String)  
+    raw_data = Column(String)  
     title = Column(String(255))
     
 class ForecastResponse(BaseModel):
@@ -140,15 +139,15 @@ class ForecastResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# CrÃ©er les tables
+# Creer les tables
 try:
     Base.metadata.create_all(bind=engine)
-    logger.info("Tables de base de donnÃ©es crÃ©Ã©es/vÃ©rifiÃ©es avec succÃ¨s")
+    logger.info("Tables de base de donnees creees/verifiees avec succes")
 except Exception as e:
-    logger.error(f"Erreur lors de la crÃ©ation des tables: {str(e)}")
+    logger.error(f"Erreur lors de la creation des tables: {str(e)}")
     raise
 
-# ModÃ¨les Pydantic pour la validation des donnÃ©es
+# Modeles Pydantic pour la validation des donnees
 class SensorReading(BaseModel):
     timestamp: int
     U1: float
@@ -201,9 +200,9 @@ class SensorReadingResponse(BaseModel):
 
 class DeviceCreate(BaseModel):
     name: str
-    device_type: str  # 'lampe', 'prise', 'clim', 'brasseur'
-    priority: str  # 'prioritaire', 'semi_prioritaire', 'non_prioritaire'
-
+    device_type: str 
+    priority: str  
+    
 class DeviceUpdate(BaseModel):
     name: Optional[str] = None
     device_type: Optional[str] = None
@@ -236,10 +235,8 @@ class LampControlResponse(BaseModel):
     lamp_id: int
     new_state: str
 
-# Application FastAPI
-app = FastAPI(title="SystÃ¨me de Gestion Hybride API", version="1.0.0")
+app = FastAPI(title="Systeme de Gestion Hybride API", version="1.0.0")
 
-# Configuration Solcast depuis les variables d'environnement
 SOLCAST_API_KEY = os.getenv("SOLCAST_API_KEY")
 SOLCAST_SITE_ID = os.getenv("SOLCAST_SITE_ID")
 SOLCAST_BASE_URL = os.getenv("SOLCAST_BASE_URL")
@@ -247,21 +244,21 @@ SOLCAST_BASE_URL = os.getenv("SOLCAST_BASE_URL")
 if not all([SOLCAST_API_KEY, SOLCAST_SITE_ID, SOLCAST_BASE_URL]):
     logger.warning("Configuration Solcast incomplète - fonctionnalité prévision désactivée")
 
-# Monter le dossier static
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Templates
+
 templates = Jinja2Templates(directory="templates")
 
-logger.info("Application FastAPI initialisÃ©e")
+logger.info("Application FastAPI initialisee")
 
-# DÃ©pendance pour obtenir la session de base de donnÃ©es
+# Dependance pour obtenir la session de base de donnees
 def get_db():
     db = SessionLocal()
     try:
         yield db
     except Exception as e:
-        logger.error(f"Erreur lors de l'accÃ¨s Ã  la base de donnÃ©es: {str(e)}")
+        logger.error(f"Erreur lors de l'acces a  la base de donnees: {str(e)}")
         raise
     finally:
         db.close()
@@ -282,16 +279,16 @@ async def home(request: Request):
 @app.post("/data", response_model=dict)
 async def receive_sensor_data(data: SensorReading, db: Session = Depends(get_db)):
     """
-    Recevoir et stocker les donnÃ©es des capteurs de l'ESP32
+    Recevoir et stocker les donnees des capteurs de l'ESP32
     """
-    # Log des donnÃ©es reÃ§ues
-    logger.info("=== DONNÃ‰ES REÃ‡UES ===")
+    # Log des donnees recues
+    logger.info("=== DONNEES RECUES ===")
     logger.info(f"Timestamp ESP32: {data.timestamp}")
-    logger.info(f"Source 1 - U1: {data.U1}V, I1: {data.I1}A, P1: {data.P1}W, Ã‰tat: {data.etatS1}")
-    logger.info(f"Source 2 - U2: {data.U2}V, I2: {data.I2}A, P2: {data.P2}W, Ã‰tat: {data.etatS2}")
-    logger.info(f"Lampe 1 - Courant: {data.currentLamp1}A, Puissance: {data.powerLamp1}W, Ã‰tat: {data.etatLamp1}")
-    logger.info(f"Lampe 2 - Courant: {data.currentLamp2}A, Puissance: {data.powerLamp2}W, Ã‰tat: {data.etatLamp2}")
-    logger.info(f"Ã‰nergie sauvÃ©e - S1: {data.savedEnergyS1}kWh, S2: {data.savedEnergyS2}kWh, Total: {data.savedEnergyT}kWh")
+    logger.info(f"Source 1 - U1: {data.U1}V, I1: {data.I1}A, P1: {data.P1}W, Etat: {data.etatS1}")
+    logger.info(f"Source 2 - U2: {data.U2}V, I2: {data.I2}A, P2: {data.P2}W, Etat: {data.etatS2}")
+    logger.info(f"Lampe 1 - Courant: {data.currentLamp1}A, Puissance: {data.powerLamp1}W, Etat: {data.etatLamp1}")
+    logger.info(f"Lampe 2 - Courant: {data.currentLamp2}A, Puissance: {data.powerLamp2}W, Etat: {data.etatLamp2}")
+    logger.info(f"Energie sauvee - S1: {data.savedEnergyS1}kWh, S2: {data.savedEnergyS2}kWh, Total: {data.savedEnergyT}kWh")
     logger.info(f"Source active: {data.sourceActive}, Charge active: {data.chargeActive}")
     
     try:
@@ -322,36 +319,36 @@ async def receive_sensor_data(data: SensorReading, db: Session = Depends(get_db)
         db.commit()
         db.refresh(db_reading)
         
-        logger.info(f"DonnÃ©es enregistrÃ©es avec succÃ¨s - ID: {db_reading.id}, Timestamp DB: {db_reading.timestamp}")
+        logger.info(f"Donnees enregistrees avec succes - ID: {db_reading.id}, Timestamp DB: {db_reading.timestamp}")
         
-        return {"status": "success", "id": db_reading.id, "message": "DonnÃ©es reÃ§ues et enregistrÃ©es"}
+        return {"status": "success", "id": db_reading.id, "message": "Donnees recues et enregistrees"}
     
     except Exception as e:
         db.rollback()
-        logger.error(f"ERREUR lors de l'enregistrement des donnÃ©es: {str(e)}")
-        logger.error(f"DonnÃ©es qui ont causÃ© l'erreur: {json.dumps(data.dict(), indent=2, default=str)}")
+        logger.error(f"ERREUR lors de l'enregistrement des donnees: {str(e)}")
+        logger.error(f"Donnees qui ont cause l'erreur: {json.dumps(data.dict(), indent=2, default=str)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'enregistrement: {str(e)}")
 
 @app.get("/data/latest", response_model=SensorReadingResponse)
 async def get_latest_data(db: Session = Depends(get_db)):
     """
-    RÃ©cupÃ©rer les derniÃ¨res donnÃ©es enregistrÃ©es
+    Recuperer les dernieres donnees enregistrees
     """
     try:
-        logger.info("RequÃªte pour rÃ©cupÃ©rer les derniÃ¨res donnÃ©es")
+        logger.info("Requaªte pour recuperer les dernieres donnees")
         latest_reading = db.query(SensorData).order_by(SensorData.timestamp.desc()).first()
         
         if not latest_reading:
-            logger.warning("Aucune donnÃ©e trouvÃ©e dans la base")
-            raise HTTPException(status_code=404, detail="Aucune donnÃ©e trouvÃ©e")
+            logger.warning("Aucune donnee trouvee dans la base")
+            raise HTTPException(status_code=404, detail="Aucune donnee trouvee")
         
-        logger.info(f"DerniÃ¨res donnÃ©es rÃ©cupÃ©rÃ©es - ID: {latest_reading.id}, Timestamp: {latest_reading.timestamp}")
+        logger.info(f"Dernieres donnees recuperees - ID: {latest_reading.id}, Timestamp: {latest_reading.timestamp}")
         return latest_reading
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erreur lors de la rÃ©cupÃ©ration des derniÃ¨res donnÃ©es: {str(e)}")
+        logger.error(f"Erreur lors de la recuperation des dernieres donnees: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.get("/data/history", response_model=List[SensorReadingResponse])
@@ -363,49 +360,49 @@ async def get_data_history(
     db: Session = Depends(get_db)
 ):
     """
-    RÃ©cupÃ©rer l'historique des donnÃ©es avec pagination et filtres de date
+    Recuperer l'historique des donnees avec pagination et filtres de date
     """
     try:
-        logger.info(f"RequÃªte historique - Limit: {limit}, Offset: {offset}, Start: {start_date}, End: {end_date}")
+        logger.info(f"Requaªte historique - Limit: {limit}, Offset: {offset}, Start: {start_date}, End: {end_date}")
         
         query = db.query(SensorData)
         
         if start_date:
             query = query.filter(SensorData.timestamp >= start_date)
-            logger.info(f"Filtre appliquÃ© - Date dÃ©but: {start_date}")
+            logger.info(f"Filtre applique - Date debut: {start_date}")
         
         if end_date:
             query = query.filter(SensorData.timestamp <= end_date)
-            logger.info(f"Filtre appliquÃ© - Date fin: {end_date}")
+            logger.info(f"Filtre applique - Date fin: {end_date}")
         
         readings = query.order_by(SensorData.timestamp.desc()).offset(offset).limit(limit).all()
         
-        logger.info(f"Historique rÃ©cupÃ©rÃ© - {len(readings)} enregistrements")
+        logger.info(f"Historique recupere - {len(readings)} enregistrements")
         return readings
         
     except Exception as e:
-        logger.error(f"Erreur lors de la rÃ©cupÃ©ration de l'historique: {str(e)}")
+        logger.error(f"Erreur lors de la recuperation de l'historique: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.get("/data/stats", response_model=dict)
 async def get_system_stats(db: Session = Depends(get_db)):
     """
-    RÃ©cupÃ©rer les statistiques du systÃ¨me
+    Recuperer les statistiques du systeme
     """
     try:
-        logger.info("Calcul des statistiques du systÃ¨me")
+        logger.info("Calcul des statistiques du systeme")
         
-        # DerniÃ¨re lecture
+        # Derniere lecture
         latest = db.query(SensorData).order_by(SensorData.timestamp.desc()).first()
         
         if not latest:
-            logger.warning("Aucune donnÃ©e disponible pour les statistiques")
-            return {"error": "Aucune donnÃ©e disponible"}
+            logger.warning("Aucune donnee disponible pour les statistiques")
+            return {"error": "Aucune donnee disponible"}
         
         # Statistiques de base
         total_readings = db.query(SensorData).count()
         
-        # Ã‰nergie totale consommÃ©e
+        # Energie totale consommee
         total_energy_s1 = latest.savedEnergyS1 if latest.savedEnergyS1 else 0
         total_energy_s2 = latest.savedEnergyS2 if latest.savedEnergyS2 else 0
         total_energy = latest.savedEnergyT if latest.savedEnergyT else 0
@@ -415,7 +412,7 @@ async def get_system_stats(db: Session = Depends(get_db)):
         current_power_s2 = latest.P2 if latest.P2 else 0
         current_power_total = current_power_s1 + current_power_s2
         
-        # Ã‰tat actuel du systÃ¨me
+        # Etat actuel du systeme
         system_status = {
             "source_1_active": latest.etatS1 == "ON",
             "source_2_active": latest.etatS2 == "ON",
@@ -441,7 +438,7 @@ async def get_system_stats(db: Session = Depends(get_db)):
             "last_update": latest.timestamp
         }
         
-        logger.info(f"Statistiques calculÃ©es - Total lectures: {total_readings}, Puissance totale: {current_power_total}W")
+        logger.info(f"Statistiques calculees - Total lectures: {total_readings}, Puissance totale: {current_power_total}W")
         return stats
         
     except Exception as e:
@@ -455,10 +452,10 @@ async def get_energy_report(
     db: Session = Depends(get_db)
 ):
     """
-    GÃ©nÃ©rer un rapport d'Ã©nergie pour une pÃ©riode donnÃ©e
+    Generer un rapport d'energie pour une periode donnee
     """
     try:
-        logger.info(f"GÃ©nÃ©ration du rapport d'Ã©nergie - PÃ©riode: {start_date} Ã  {end_date}")
+        logger.info(f"Generation du rapport d'energie - Periode: {start_date} a  {end_date}")
         
         query = db.query(SensorData)
         
@@ -471,10 +468,10 @@ async def get_energy_report(
         readings = query.order_by(SensorData.timestamp.asc()).all()
         
         if not readings:
-            logger.warning("Aucune donnÃ©e trouvÃ©e pour la pÃ©riode spÃ©cifiÃ©e")
-            return {"error": "Aucune donnÃ©e pour la pÃ©riode spÃ©cifiÃ©e"}
+            logger.warning("Aucune donnee trouvee pour la periode specifiee")
+            return {"error": "Aucune donnee pour la periode specifiee"}
         
-        # Calcul de la consommation pour la pÃ©riode
+        # Calcul de la consommation pour la periode
         first_reading = readings[0]
         last_reading = readings[-1]
         
@@ -515,24 +512,24 @@ async def get_energy_report(
             }
         }
         
-        logger.info(f"Rapport gÃ©nÃ©rÃ© - {len(readings)} lectures, Ã‰nergie totale: {total_energy_consumed:.3f}kWh")
+        logger.info(f"Rapport genere - {len(readings)} lectures, Energie totale: {total_energy_consumed:.3f}kWh")
         return report
         
     except Exception as e:
-        logger.error(f"Erreur lors de la gÃ©nÃ©ration du rapport: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la gÃ©nÃ©ration du rapport: {str(e)}")
+        logger.error(f"Erreur lors de la generation du rapport: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la generation du rapport: {str(e)}")
 
 @app.delete("/data/cleanup")
 async def cleanup_old_data(days_to_keep: int = 30, db: Session = Depends(get_db)):
     """
-    Nettoyer les anciennes donnÃ©es (garder seulement les X derniers jours)
+    Nettoyer les anciennes donnees (garder seulement les X derniers jours)
     """
     try:
-        logger.info(f"DÃ©marrage du nettoyage - Conservation de {days_to_keep} jours")
+        logger.info(f"Demarrage du nettoyage - Conservation de {days_to_keep} jours")
         
         cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
         
-        # Compter les enregistrements Ã  supprimer
+        # Compter les enregistrements a  supprimer
         count_to_delete = db.query(SensorData).filter(SensorData.timestamp < cutoff_date).count()
         
         deleted_count = db.query(SensorData).filter(
@@ -541,29 +538,29 @@ async def cleanup_old_data(days_to_keep: int = 30, db: Session = Depends(get_db)
         
         db.commit()
         
-        logger.info(f"Nettoyage terminÃ© - {deleted_count} enregistrements supprimÃ©s (date limite: {cutoff_date})")
+        logger.info(f"Nettoyage termine - {deleted_count} enregistrements supprimes (date limite: {cutoff_date})")
         
         return {
             "status": "success",
             "deleted_records": deleted_count,
             "cutoff_date": cutoff_date,
-            "message": f"DonnÃ©es antÃ©rieures Ã  {days_to_keep} jours supprimÃ©es"
+            "message": f"Donnees anterieures a  {days_to_keep} jours supprimees"
         }
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Erreur lors du nettoyage des donnÃ©es: {str(e)}")
+        logger.error(f"Erreur lors du nettoyage des donnees: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors du nettoyage: {str(e)}")
 
 @app.get("/")
 async def root():
     """
-    Point d'entrÃ©e de l'API
+    Point d'entree de l'API
     """
-    logger.info("AccÃ¨s Ã  l'endpoint racine de l'API")
+    logger.info("Acces a  l'endpoint racine de l'API")
     
     return {
-        "message": "API du SystÃ¨me de Gestion Hybride",
+        "message": "API du Systeme de Gestion Hybride",
         "version": "1.0.0",
         "database_config": {
             "host": DB_HOST,
@@ -576,28 +573,27 @@ async def root():
             "file": LOG_FILE
         },
         "endpoints": {
-            "POST /data": "Recevoir donnÃ©es des capteurs",
-            "GET /data/latest": "DerniÃ¨res donnÃ©es",
-            "GET /data/history": "Historique des donnÃ©es",
-            "GET /data/stats": "Statistiques du systÃ¨me",
-            "GET /data/energy-report": "Rapport d'Ã©nergie",
-            "DELETE /data/cleanup": "Nettoyer anciennes donnÃ©es",
-            "GET /logs": "Consulter les logs rÃ©cents"
+            "POST /data": "Recevoir donnees des capteurs",
+            "GET /data/latest": "Dernieres donnees",
+            "GET /data/history": "Historique des donnees",
+            "GET /data/stats": "Statistiques du systeme",
+            "GET /data/energy-report": "Rapport d'energie",
+            "DELETE /data/cleanup": "Nettoyer anciennes donnees",
+            "GET /logs": "Consulter les logs recents"
         }
     }
 
-# Ajout d'un endpoint pour consulter les logs rÃ©cents
 @app.get("/logs")
 async def get_recent_logs(lines: int = 50):
     """
-    RÃ©cupÃ©rer les derniÃ¨res lignes du fichier de log
+    Recuperer les dernieres lignes du fichier de log
     """
     try:
-        logger.info(f"Demande de consultation des logs - {lines} derniÃ¨res lignes")
+        logger.info(f"Demande de consultation des logs - {lines} dernieres lignes")
         
         if not os.path.exists(LOG_FILE):
-            logger.warning(f"Fichier de log {LOG_FILE} non trouvÃ©")
-            return {"error": "Fichier de log non trouvÃ©"}
+            logger.warning(f"Fichier de log {LOG_FILE} non trouve")
+            return {"error": "Fichier de log non trouve"}
         
         with open(LOG_FILE, 'r', encoding='utf-8') as f:
             all_lines = f.readlines()
@@ -617,28 +613,27 @@ async def get_recent_logs(lines: int = 50):
 @app.post("/control/lamp", response_model=LampControlResponse)
 async def control_lamp(control: LampControl, db: Session = Depends(get_db)):
     """
-    ContrÃ´ler l'Ã©tat d'une lampe Ã  distance
+    Contra´ler l'etat d'une lampe a  distance
     """
     try:
         global pending_commands
         
-        logger.info(f"Commande reÃ§ue - Lampe {control.lamp_id}: {control.action}")
+        logger.info(f"Commande recue - Lampe {control.lamp_id}: {control.action}")
         
-        # Validation des paramÃ¨tres
+        # Validation des parametres
         if control.lamp_id not in [1, 2]:
-            raise HTTPException(status_code=400, detail="lamp_id doit Ãªtre 1 ou 2")
+            raise HTTPException(status_code=400, detail="lamp_id doit aªtre 1 ou 2")
         
         if control.action not in ["ON", "OFF"]:
-            raise HTTPException(status_code=400, detail="action doit Ãªtre 'ON' ou 'OFF'")
+            raise HTTPException(status_code=400, detail="action doit aªtre 'ON' ou 'OFF'")
         
-        # Stocker la commande pour que l'ESP32 la rÃ©cupÃ¨re
         pending_commands[f"lamp{control.lamp_id}"] = control.action
         
-        logger.info(f"Commande stockÃ©e - Lampe {control.lamp_id} -> {control.action}")
+        logger.info(f"Commande stockee - Lampe {control.lamp_id} -> {control.action}")
         
         return LampControlResponse(
             status="success",
-            message=f"Commande envoyÃ©e pour Lampe {control.lamp_id}",
+            message=f"Commande envoyee pour Lampe {control.lamp_id}",
             lamp_id=control.lamp_id,
             new_state=control.action
         )
@@ -646,21 +641,20 @@ async def control_lamp(control: LampControl, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erreur lors du contrÃ´le de la lampe: {str(e)}")
+        logger.error(f"Erreur lors du contra´le de la lampe: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
-# Variable globale pour stocker les commandes en attente
 pending_commands = {}
 
 @app.get("/control/get-commands")
 async def get_pending_commands():
     """
-    Endpoint pour que l'ESP32 rÃ©cupÃ¨re les commandes en attente
+    Endpoint pour que l'ESP32 recupere les commandes en attente
     """
     global pending_commands
     commands = pending_commands.copy()
-    pending_commands.clear()  # Vider aprÃ¨s rÃ©cupÃ©ration
-    logger.info(f"Commandes rÃ©cupÃ©rÃ©es par ESP32: {commands}")
+    pending_commands.clear()  
+    logger.info(f"Commandes recuperees par ESP32: {commands}")
     return {"commands": commands}
 
 @app.get("/data/daily-energy", response_model=dict)
@@ -669,25 +663,23 @@ async def get_daily_energy(
     db: Session = Depends(get_db)
 ):
     """
-    RÃ©cupÃ©rer la consommation d'Ã©nergie journaliÃ¨re par appareil pour une date donnÃ©e
+    Recuperer la consommation d'energie journaliere par appareil pour une date donnee
     """
     try:
-        logger.info(f"GÃ©nÃ©ration du rapport d'Ã©nergie journaliÃ¨re pour: {date}")
+        logger.info(f"Generation du rapport d'energie journaliere pour: {date}")
         
-        # Convertir la date en datetime pour dÃ©but et fin de journÃ©e
         start_date = datetime.strptime(date, "%Y-%m-%d")
         end_date = start_date.replace(hour=23, minute=59, second=59)
         
-        # RÃ©cupÃ©rer toutes les donnÃ©es de la journÃ©e
         readings = db.query(SensorData).filter(
             SensorData.timestamp >= start_date,
             SensorData.timestamp <= end_date
         ).order_by(SensorData.timestamp.asc()).all()
         
         if not readings:
-            logger.warning(f"Aucune donnÃ©e trouvÃ©e pour le {date}")
+            logger.warning(f"Aucune donnee trouvee pour le {date}")
             return {
-                "error": f"Aucune donnÃ©e trouvÃ©e pour le {date}",
+                "error": f"Aucune donnee trouvee pour le {date}",
                 "date": date,
                 "lamp1_energy": 0,
                 "lamp2_energy": 0,
@@ -696,22 +688,22 @@ async def get_daily_energy(
                 "total_energy": 0
             }
         
-        # Calcul de l'Ã©nergie consommÃ©e par chaque appareil
+        # Calcul de l'energie consommee par chaque appareil
         first_reading = readings[0]
         last_reading = readings[-1]
         
-        # Ã‰nergie des sources (diffÃ©rence entre fin et dÃ©but de journÃ©e)
+        # Energie des sources (difference entre fin et debut de journee)
         source1_energy = max(0, (last_reading.savedEnergyS1 or 0) - (first_reading.savedEnergyS1 or 0))
         source2_energy = max(0, (last_reading.savedEnergyS2 or 0) - (first_reading.savedEnergyS2 or 0))
         
-        # Estimation de l'Ã©nergie des lampes basÃ©e sur la puissance moyenne et le temps d'utilisation
+        # Estimation de l'energie des lampes basee sur la puissance moyenne et le temps d'utilisation
         lamp1_total_power = 0
         lamp2_total_power = 0
         lamp1_on_duration = 0
         lamp2_on_duration = 0
         
-        # Calcul basÃ© sur les lectures avec un intervalle estimÃ© entre chaque lecture
-        interval_hours = 0.05  # Supposons 3 minutes entre chaque lecture (3/60 = 0.05h)
+
+        interval_hours = 0.05  
         
         for reading in readings:
             if reading.etatLamp1 == 'ON' and reading.powerLamp1:
@@ -723,8 +715,8 @@ async def get_daily_energy(
                 lamp2_on_duration += interval_hours
         
         # Convertir en kWh
-        lamp1_energy = lamp1_total_power / 1000  # Watts to kWh
-        lamp2_energy = lamp2_total_power / 1000  # Watts to kWh
+        lamp1_energy = lamp1_total_power / 1000  
+        lamp2_energy = lamp2_total_power / 1000 
         
         total_energy = source1_energy + source2_energy
         
@@ -744,31 +736,31 @@ async def get_daily_energy(
             }
         }
         
-        logger.info(f"Ã‰nergie journaliÃ¨re calculÃ©e - L1: {lamp1_energy:.3f}kWh, L2: {lamp2_energy:.3f}kWh, S1: {source1_energy:.3f}kWh, S2: {source2_energy:.3f}kWh")
+        logger.info(f"Energie journaliere calculee - L1: {lamp1_energy:.3f}kWh, L2: {lamp2_energy:.3f}kWh, S1: {source1_energy:.3f}kWh, S2: {source2_energy:.3f}kWh")
         return result
         
     except ValueError as e:
         logger.error(f"Format de date invalide: {date}")
         raise HTTPException(status_code=400, detail=f"Format de date invalide. Utilisez YYYY-MM-DD")
     except Exception as e:
-        logger.error(f"Erreur lors du calcul de l'Ã©nergie journaliÃ¨re: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul de l'Ã©nergie journaliÃ¨re: {str(e)}")
+        logger.error(f"Erreur lors du calcul de l'energie journaliere: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul de l'energie journaliere: {str(e)}")
 
 @app.get("/devices", response_model=List[DeviceResponse])
 async def get_all_devices(db: Session = Depends(get_db)):
-    """RÃ©cupÃ©rer tous les appareils"""
+    """Recuperer tous les appareils"""
     try:
         devices = db.query(Device).filter(Device.is_active == True).order_by(Device.priority, Device.name).all()
         return devices
     except Exception as e:
-        logger.error(f"Erreur lors de la rÃ©cupÃ©ration des appareils: {str(e)}")
+        logger.error(f"Erreur lors de la recuperation des appareils: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.post("/devices", response_model=DeviceResponse)
 async def create_device(device: DeviceCreate, db: Session = Depends(get_db)):
-    """CrÃ©er un nouvel appareil"""
+    """Creer un nouvel appareil"""
     try:
-        # Validation des types et prioritÃ©s
+        # Validation des types et priorites
         valid_types = ['lampe', 'prise', 'clim', 'brasseur']
         valid_priorities = ['prioritaire', 'semi_prioritaire', 'non_prioritaire']
         
@@ -776,30 +768,30 @@ async def create_device(device: DeviceCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail=f"Type d'appareil invalide. Utilisez: {valid_types}")
         
         if device.priority not in valid_priorities:
-            raise HTTPException(status_code=400, detail=f"PrioritÃ© invalide. Utilisez: {valid_priorities}")
+            raise HTTPException(status_code=400, detail=f"Priorite invalide. Utilisez: {valid_priorities}")
         
         db_device = Device(**device.dict())
         db.add(db_device)
         db.commit()
         db.refresh(db_device)
         
-        logger.info(f"Nouvel appareil crÃ©Ã©: {device.name} ({device.device_type}) - PrioritÃ©: {device.priority}")
+        logger.info(f"Nouvel appareil cree: {device.name} ({device.device_type}) - Priorite: {device.priority}")
         return db_device
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erreur lors de la crÃ©ation de l'appareil: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la crÃ©ation: {str(e)}")
+        logger.error(f"Erreur lors de la creation de l'appareil: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la creation: {str(e)}")
 
 @app.put("/devices/{device_id}", response_model=DeviceResponse)
 async def update_device(device_id: int, device: DeviceUpdate, db: Session = Depends(get_db)):
-    """Mettre Ã  jour un appareil"""
+    """Mettre a  jour un appareil"""
     try:
         db_device = db.query(Device).filter(Device.id == device_id).first()
         if not db_device:
-            raise HTTPException(status_code=404, detail="Appareil non trouvÃ©")
+            raise HTTPException(status_code=404, detail="Appareil non trouve")
         
         # Validation si les champs sont fournis
         if device.device_type:
@@ -810,9 +802,9 @@ async def update_device(device_id: int, device: DeviceUpdate, db: Session = Depe
         if device.priority:
             valid_priorities = ['prioritaire', 'semi_prioritaire', 'non_prioritaire']
             if device.priority not in valid_priorities:
-                raise HTTPException(status_code=400, detail=f"PrioritÃ© invalide. Utilisez: {valid_priorities}")
+                raise HTTPException(status_code=400, detail=f"Priorite invalide. Utilisez: {valid_priorities}")
         
-        # Mettre Ã  jour les champs fournis
+        # Mettre a  jour les champs fournis
         for key, value in device.dict(exclude_unset=True).items():
             setattr(db_device, key, value)
         
@@ -820,30 +812,30 @@ async def update_device(device_id: int, device: DeviceUpdate, db: Session = Depe
         db.commit()
         db.refresh(db_device)
         
-        logger.info(f"Appareil mis Ã  jour: ID {device_id}")
+        logger.info(f"Appareil mis a  jour: ID {device_id}")
         return db_device
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erreur lors de la mise Ã  jour de l'appareil: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la mise Ã  jour: {str(e)}")
+        logger.error(f"Erreur lors de la mise a  jour de l'appareil: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la mise a  jour: {str(e)}")
 
 @app.delete("/devices/{device_id}")
 async def delete_device(device_id: int, db: Session = Depends(get_db)):
-    """Supprimer (dÃ©sactiver) un appareil"""
+    """Supprimer (desactiver) un appareil"""
     try:
         db_device = db.query(Device).filter(Device.id == device_id).first()
         if not db_device:
-            raise HTTPException(status_code=404, detail="Appareil non trouvÃ©")
+            raise HTTPException(status_code=404, detail="Appareil non trouve")
         
         db_device.is_active = False
         db_device.updated_at = datetime.utcnow()
         db.commit()
         
-        logger.info(f"Appareil dÃ©sactivÃ©: ID {device_id}")
-        return {"message": f"Appareil {db_device.name} dÃ©sactivÃ© avec succÃ¨s"}
+        logger.info(f"Appareil desactive: ID {device_id}")
+        return {"message": f"Appareil {db_device.name} desactive avec succes"}
         
     except HTTPException:
         raise
@@ -854,29 +846,29 @@ async def delete_device(device_id: int, db: Session = Depends(get_db)):
 
 @app.post("/control/device", response_model=dict)
 async def control_device(device_id: int, action: str, db: Session = Depends(get_db)):
-    """ContrÃ´ler un appareil"""
+    """Contra´ler un appareil"""
     try:
         if action not in ["ON", "OFF"]:
-            raise HTTPException(status_code=400, detail="action doit Ãªtre 'ON' ou 'OFF'")
+            raise HTTPException(status_code=400, detail="action doit aªtre 'ON' ou 'OFF'")
         
         db_device = db.query(Device).filter(Device.id == device_id).first()
         if not db_device:
-            raise HTTPException(status_code=404, detail="Appareil non trouvÃ©")
+            raise HTTPException(status_code=404, detail="Appareil non trouve")
         
         # Stocker la commande pour l'ESP32
         global pending_commands
         pending_commands[f"device_{device_id}"] = action
         
-        # Mettre Ã  jour l'Ã©tat dans la base de donnÃ©es
+        # Mettre a  jour l'etat dans la base de donnees
         db_device.current_state = action
         db_device.updated_at = datetime.utcnow()
         db.commit()
         
-        logger.info(f"Commande envoyÃ©e - Appareil {db_device.name} (ID: {device_id}): {action}")
+        logger.info(f"Commande envoyee - Appareil {db_device.name} (ID: {device_id}): {action}")
         
         return {
             "status": "success",
-            "message": f"Commande envoyÃ©e pour {db_device.name}",
+            "message": f"Commande envoyee pour {db_device.name}",
             "device_id": device_id,
             "device_name": db_device.name,
             "new_state": action
@@ -885,7 +877,7 @@ async def control_device(device_id: int, action: str, db: Session = Depends(get_
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erreur lors du contrÃ´le de l'appareil: {str(e)}")
+        logger.error(f"Erreur lors du contra´le de l'appareil: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.post("/forecast/generate", response_model=dict)
@@ -1055,5 +1047,5 @@ Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("DÃ©marrage du serveur FastAPI...")
+    logger.info("Demarrage du serveur FastAPI...")
     uvicorn.run(app, host="0.0.0.0", port=8000)
